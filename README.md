@@ -1,11 +1,8 @@
-# cwal - the world's worst palette generator
+# iris - the world's worst palette generator
 
----
+## wtf is iris?
+iris is a work-in-progress palette generator written in C with minimal dependencies. it is loosely inspired by the pywal/cwal projects, but it doesn't depend on the same libaries; specifically libimagequant and imagemagick.
 
-### what is cwal?
-cwal is a gui-based palette generator loosely inspired by the now orphaned pywal project. currently only pngs are supported.
+as of 0.1, it can only print out the hex codes of each pixel in a PNG file. actual palette generation is coming shortly.
 
-cwal is also my first ever programming project. my experience with C before this was also very minimal, limited to a couple of tiny projects made by following a textbook. this has been an amazing teaching experience, and i've come to really appreciate the language. oh and i didn't use any ai. vibe coding is a disease :-)
-
-all of this is to say that if anything in the source code is redundant, ass-backwards, or otherwise idiotic, its _totally_ because of my lack of experience and definitely NOT my lack of brain cells. i also tried to include as few non-standard libraries as possible, and i would like to keep it that way. feedback and PRs are welcomed.
-
+P.S.: i am very much a noob at programming, and this project is my way of teaching myself C. any feedback is appreciated.

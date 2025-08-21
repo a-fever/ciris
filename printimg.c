@@ -75,7 +75,7 @@ int mod256(int x)
 
 int avgFilter(float a, float b)
 {
-    return floor((a+b)/2); //figure out math library >_>
+    return floor((a+b)/2);
 }
 
 int paethPredictor(int a, int b, int c)
@@ -84,8 +84,7 @@ int paethPredictor(int a, int b, int c)
 	int pa = abs(p - a);
 	int pb = abs(p - b);
 	int pc = abs(p - c);
-	//printf("%3d %3d %3d %3d %3d %3d %3d\n", a, b, c, p, pa, pb, pc);
-	 //printf("%3.2X %3.2X %3.2X %3.2X %3.2X %3.2X %3.2X\n", a, b, c, p, pa, pb, pc);
+
 	if (pa <= pb && pa <= pc){
 		//printf(" \tA\n");
 		return a;
@@ -176,7 +175,7 @@ int main(int argc, char * argv[])
 		    for (j = 1; j < getImgInfo(image,'w')*4; j++){
 			imageArray[j-1][i] = (imageArray[j][i]);
 		    }
-		case 0x01: // x = a -- each entry needs to be shifted over to the left 1. x = x-1
+		case 0x01: // x =
 		    for (j = 0; j < 4; j++){
 			imageArray[j][i] = imageArray[j+1][i];
 		    }
