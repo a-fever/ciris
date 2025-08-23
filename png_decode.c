@@ -3,33 +3,26 @@
 #include <stdlib.h>
 #include "math.h"
 #include "/usr/include/libdeflate.h"
+
 int i = 0;
 int PNG_MAGIC_NUMBER[8] ={0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A};
 
-	/* TODO:
-	* add more checks (what happens if the keyword isnt found in scanner?)
-	* implement zlib
-	* start splitting program up. we should have a image checker function
-	*/
-
-int scanner(char *keyword,unsigned char *target,unsigned long imageSize) //finds the first instance of the keyword
+unsigned char scanner(char *keyword,unsigned char *target,unsigned long imageSize) //finds the first instance of the keyword
 {
 	int i, j;
 	int location;
 
 	for (i = 0; i < imageSize; i++){
-		if (target[i] == keyword[0] && target[i+1] == keyword[1] && target[i+2] == keyword[2] && target[i+3] == keyword[3]){ //THIS IS FUCKED.
+		if (target[i] == keyword[0] && target[i+1] == keyword[1] && target[i+2] == keyword[2] && target[i+3] == keyword[3]){
 			location = i+4;
 			i = imageSize;
 		}
 	}
 
-	if (location == 0){ //FIXME doesnt work???
+	if (location == 4){ //FIXME doesnt work???
 		printf("SCAN ERROR: \"%s\" WAS NOT FOUND IN THE TARGET STRING.\n", keyword);
 		return -1;
-	}
-
-	else {
+	}else{
 		return location;
 	}
 
@@ -99,13 +92,14 @@ int paethPredictor(int a, int b, int c)
 	}
 }
 
-int main(int argc, char * argv[])
+void * processPNG(int argc, char * argv[])
 {//image opener and checker
+
 	FILE *image = fopen(argv[1], "rb");
 
 	if(image == NULL){
 		printf("IMAGE NOT FOUND. DID YOU TYPE THE CORRECT PATH?\n");
-		return -1;
+		return 0;
 	}
 
 	fseek(image, 0L, SEEK_END);
@@ -122,7 +116,7 @@ int main(int argc, char * argv[])
 	}
 	if (i < 8){
 		printf("INVALID OR CORRUPTED PNG.\n");
-		return -1;
+		return 0;
 	}
 	int imgDataStart = scanner("IDAT",imageDataPtr,imageSize);
 	int imgDataEnd = scanner("IEND", imageDataPtr, imageSize) - 8;
@@ -175,7 +169,7 @@ int main(int argc, char * argv[])
 		    for (j = 1; j < getImgInfo(image,'w')*4; j++){
 			imageArray[j-1][i] = (imageArray[j][i]);
 		    }
-		case 0x01: // x =
+		case 0x01: // x = x + a
 		    for (j = 0; j < 4; j++){
 			imageArray[j][i] = imageArray[j+1][i];
 		    }
@@ -189,7 +183,7 @@ int main(int argc, char * argv[])
 			if (i != 0){ //will a first line ever have 0x02? i dont think so lol
 			    imageArray[j][i] = imageArray[j - 4][i] + imageArray[j][i];
 			}else{
-			    break;
+			    return 0;
 			}
 		    } break;
 		case 0x03: // x = mod256(x + (a + b)/2)
@@ -210,18 +204,11 @@ int main(int argc, char * argv[])
 		    break;
 	    }
 	}
+//end of unfiltering
 
-	printf("\n");
-	for (i = 0; i < getImgInfo(image, 'h'); i++){
-	    printf("%d:", i);
-	    for (j = 0; j < getImgInfo(image, 'w')*4; j++){
-		if (j % 4 == 0){
-		    printf(" #");}
-		printf("%.2X", imageArray[j][i]);
-	    }
-	    printf("\n");
-	}
+	void * arrayPtr = malloc(bufferSize);
+	arrayPtr = &imageArray;
 
 	fclose(image);
-	return 0;
+	return arrayPtr;
 }
