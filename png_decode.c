@@ -7,9 +7,11 @@
 int i = 0;
 int PNG_MAGIC_NUMBER[8] ={0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A};
 
+//TODO: replace all the VLAs with malloced arrays
+
 unsigned char scanner(char *keyword,unsigned char *target,unsigned long imageSize) //finds the first instance of the keyword
 {
-	int i, j;
+	int i;
 	int location;
 
 	for (i = 0; i < imageSize; i++){
@@ -43,14 +45,15 @@ unsigned int getImgInfo(FILE *img, unsigned char type)
 	fread(height_b, 1, 4, img);
 	rewind(img);
 
-	for (i = 0; i < 4; i++){	//combining the bytes
+	for (i = 0; i < 4; i++){	//combining the bytes. theres gotta be a better way of doing this
 		width = width * 10;
 		width = width_b[i] + width;
 	}
 	for (i = 0; i < 4; i++){
 		height = height * 10;
 		height = height_b[i] + height;
-	} 				//i fucking hate c language the older cpus make me manually make a 4 byte integer and shout go white boy go
+	}
+
 	if (type == 'h'){
 		return height;
 	}if (type == 'w'){
@@ -66,7 +69,7 @@ int mod256(int x)
 	return x;
 }
 
-int avgFilter(float a, float b)
+int avgFilter(float a, float b) //NOTE i dont even know if this works...
 {
     return floor((a+b)/2);
 }
@@ -92,10 +95,10 @@ int paethPredictor(int a, int b, int c)
 	}
 }
 
-void * processPNG(int argc, char * argv[])
+unsigned char *processPNG(char *fileLoc)
 {//image opener and checker
 
-	FILE *image = fopen(argv[1], "rb");
+	FILE *image = fopen(fileLoc, "rb");
 
 	if(image == NULL){
 		printf("IMAGE NOT FOUND. DID YOU TYPE THE CORRECT PATH?\n");
@@ -128,9 +131,8 @@ void * processPNG(int argc, char * argv[])
 	for (i = 0; i < IDAT_size; i++){
 		IDAT_buffer[i] = imageData[imgDataStart+i];
 	}
-//end of checker
 
-//zlib
+//libdeflate stuff
 
 	void *decompressor = libdeflate_alloc_decompressor();
 
@@ -139,16 +141,15 @@ void * processPNG(int argc, char * argv[])
 	unsigned char buffer[bufferSize];
 
 	size_t *bufferSizeActualPtr = &bufferSize;
-	size_t *actualBytesOut;
+	//size_t *actualBytesOut;
 	int returnCode = libdeflate_zlib_decompress(decompressor, IDAT_buffer, IDAT_size, buffer, bufferSize, bufferSizeActualPtr);
 	printf("\n%d\n\n", returnCode);
 
-// end of decompression
 // now the fun really begins
 
-	unsigned int imageArray[(getImgInfo(image,'w')*4-1)][(getImgInfo(image,'h'))];
+	unsigned char imageArray[(getImgInfo(image,'w')*4-1)][(getImgInfo(image,'h'))];
 
-	int j; int k;
+	int j = 0; int k = 0;
 			//i is the vertical index, j is the horizontal jndex, and k is the total counter kndex :-)
 	for (i = 0; i < getImgInfo(image, 'h'); i++){
 		for (j = 0; j < getImgInfo(image, 'w')*4; j++){
@@ -183,6 +184,7 @@ void * processPNG(int argc, char * argv[])
 			if (i != 0){ //will a first line ever have 0x02? i dont think so lol
 			    imageArray[j][i] = imageArray[j - 4][i] + imageArray[j][i];
 			}else{
+				printf("if you're seeing this, something went terribly terribly wrong");
 			    return 0;
 			}
 		    } break;
@@ -204,9 +206,7 @@ void * processPNG(int argc, char * argv[])
 		    break;
 	    }
 	}
-//end of unfiltering
-
-	void * arrayPtr = malloc(bufferSize);
+	void* arrayPtr = malloc(100);
 	arrayPtr = &imageArray;
 
 	fclose(image);
