@@ -21,7 +21,7 @@ unsigned char scanner(char *keyword,unsigned char *target,unsigned long imageSiz
 		}
 	}
 
-	if (location == 4){ //FIXME doesnt work???
+	if (location == 4){ //FIXME doesnt work???    might work now i changed the number
 		printf("SCAN ERROR: \"%s\" WAS NOT FOUND IN THE TARGET STRING.\n", keyword);
 		return -1;
 	}else{
@@ -95,7 +95,7 @@ int paethPredictor(int a, int b, int c)
 	}
 }
 
-unsigned char *processPNG(char *fileLoc)
+unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i will ever write.
 {//image opener and checker
 
 	FILE *image = fopen(fileLoc, "rb");
@@ -104,6 +104,10 @@ unsigned char *processPNG(char *fileLoc)
 		printf("IMAGE NOT FOUND. DID YOU TYPE THE CORRECT PATH?\n");
 		return 0;
 	}
+
+	unsigned int imgW = getImgInfo(image,'w');
+	unsigned int imgH = getImgInfo(image,'h');
+
 
 	fseek(image, 0L, SEEK_END);
 	unsigned long imageSize = ftell(image);
@@ -136,7 +140,7 @@ unsigned char *processPNG(char *fileLoc)
 
 	void *decompressor = libdeflate_alloc_decompressor();
 
-	size_t bufferSize = getImgInfo(image, 'a')*5;
+	size_t bufferSize = imgW * imgH * 5;
 
 	unsigned char buffer[bufferSize];
 
@@ -147,12 +151,12 @@ unsigned char *processPNG(char *fileLoc)
 
 // now the fun really begins
 
-	unsigned char imageArray[(getImgInfo(image,'w')*4-1)][(getImgInfo(image,'h'))];
+	unsigned char imageArray[(imgW*4-1)][(imgH+1)];
 
 	int j = 0; int k = 0;
 			//i is the vertical index, j is the horizontal jndex, and k is the total counter kndex :-)
-	for (i = 0; i < getImgInfo(image, 'h'); i++){
-		for (j = 0; j < getImgInfo(image, 'w')*4; j++){
+	for (i = 0; i < imgH; i++){
+		for (j = 0; j < imgW*4; j++){
 		imageArray[j][i] = buffer[k];
 		printf("%.2X ", imageArray[j][i]);
 		k++;
@@ -162,25 +166,23 @@ unsigned char *processPNG(char *fileLoc)
 	}
 
 	printf("\n");
-
-
-	for (i = 0; i < getImgInfo(image, 'h'); i++){	// [c][b]
+	for (i = 0; i < imgH; i++){	// [c][b]
 	    switch (imageArray[0][i]) {			// [a][x]
 		case 0x00: // x = x
-		    for (j = 1; j < getImgInfo(image,'w')*4; j++){
+		    for (j = 1; j < imgW*4; j++){
 			imageArray[j-1][i] = (imageArray[j][i]);
 		    }
 		case 0x01: // x = x + a
 		    for (j = 0; j < 4; j++){
 			imageArray[j][i] = imageArray[j+1][i];
 		    }
-		    for (j = 4; j <getImgInfo(image, 'h')*4; j++){
+		    for (j = 4; j <imgH*4; j++){
 			imageArray[j][i] = imageArray[j-4][i];
 		    }
 
 		    break;
 		case 0x02: // x = x + b
-		    for (j = 5; j < getImgInfo(image,'w')*4+1; j++){
+		    for (j = 5; j < imgW*4+1; j++){
 			if (i != 0){ //will a first line ever have 0x02? i dont think so lol
 			    imageArray[j][i] = imageArray[j - 4][i] + imageArray[j][i];
 			}else{
@@ -191,8 +193,8 @@ unsigned char *processPNG(char *fileLoc)
 		case 0x03: // x = mod256(x + (a + b)/2)
 		    imageArray[j][i] = imageArray[j+1][i];
 		    imageArray[j][i] = avgFilter(imageArray[j-1][i],imageArray[j][i-1]) + imageArray[j][i];
-		case 0x04: // paeth algorithm
-		    for (j = 0; j < getImgInfo(image,'w')*4+1; j++){
+		case 0x04: // paeth algorithm. ALSO FIXME gay.png isnt printing correctly.
+		    for (j = 0; j < imgW*4+1; j++){
 			imageArray[j][i] = imageArray[j+1][i];
 			if (j == 0){
 			imageArray[j][i] = mod256(paethPredictor(0, imageArray[j][i-1], 0) + imageArray[j][i]);
@@ -206,9 +208,44 @@ unsigned char *processPNG(char *fileLoc)
 		    break;
 	    }
 	}
-	void* arrayPtr = malloc(100);
-	arrayPtr = &imageArray;
+	unsigned char new_buffer[imgH*5]; //FIXME WRONG NUMBER DUMBASS SHOULDVE BEEN AREA
+
+	k = 0;
+
+	// for (i = 0; i < imgH; i++){
+	//     for (j = 0; j < imgW*4; j++){
+	// 	new_buffer[k] = imageArray[j][i];
+	// 	printf("%.2X ", imageArray[j][i]);
+	// 	k++;
+	//     }
+	//     printf("\n");
+	//     k++;
+	// }
+
+	printf("\n");
+	for (i = 0; i < imgH+1; i++){
+	    printf("%d:", i);
+	    for (j = 0; j < imgW*4+12; j++){
+		if (j % 4 == 0){
+		    printf(" #");}
+		    printf("%.2X", imageArray[j][i]);
+	    }
+	    printf("\n");
+	}
+
+	printf("\n");
+	for (i = 0; i < imgH+1; i++){
+	    printf("%d:", i);
+	    for (j = 0; j < imgW*4; j++){
+		if (j % 4 == 0){
+		    printf(" #");}
+		    printf("%.2X", imageArray[j][i]);
+	    }
+	    printf("\n");
+	}
+
+	unsigned char *image_data = new_buffer;
 
 	fclose(image);
-	return arrayPtr;
+	return image_data;
 }
