@@ -8,6 +8,7 @@ int i = 0;
 int PNG_MAGIC_NUMBER[8] ={0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A};
 
 //TODO: replace all the VLAs with malloced arrays
+//	clean up testing print functions
 
 unsigned char scanner(char *keyword,unsigned char *target,unsigned long imageSize) //finds the first instance of the keyword
 {
@@ -193,7 +194,7 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 		case 0x03: // x = mod256(x + (a + b)/2)
 		    imageArray[j][i] = imageArray[j+1][i];
 		    imageArray[j][i] = avgFilter(imageArray[j-1][i],imageArray[j][i-1]) + imageArray[j][i];
-		case 0x04: // paeth algorithm. ALSO FIXME gay.png isnt printing correctly.
+		case 0x04: // paeth algorithm.
 		    for (j = 0; j < imgW*4+1; j++){
 			imageArray[j][i] = imageArray[j+1][i];
 			if (j == 0){
@@ -208,19 +209,19 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 		    break;
 	    }
 	}
-	unsigned char new_buffer[imgH*5]; //FIXME WRONG NUMBER DUMBASS SHOULDVE BEEN AREA
+	unsigned char *new_buffer = malloc(imgW*imgW*5);
 
 	k = 0;
 
-	// for (i = 0; i < imgH; i++){
-	//     for (j = 0; j < imgW*4; j++){
-	// 	new_buffer[k] = imageArray[j][i];
-	// 	printf("%.2X ", imageArray[j][i]);
-	// 	k++;
-	//     }
-	//     printf("\n");
-	//     k++;
-	// }
+	for (i = 0; i < imgH; i++){		//turning the pixel data into a single string
+	    for (j = 0; j < (imgW*4)-1; j++){	//bc i dont understand how to do it otherwise
+		new_buffer[k] = imageArray[j][i];
+		printf("%.2X ",imageArray[j][i]);
+		k++;
+	    }
+	    printf("\n");
+	    k++;
+	}
 
 	printf("\n");
 	for (i = 0; i < imgH+1; i++){
