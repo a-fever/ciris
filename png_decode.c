@@ -30,7 +30,7 @@ unsigned char scanner(char *keyword,unsigned char *target,unsigned long imageSiz
 	}
 
 }
-unsigned int getImgInfo(FILE *img, unsigned char type)
+unsigned int getPNGinfo(FILE *img, unsigned char type)
 //returns width, height, or area depending on parameter set
 {
 	rewind(img);
@@ -106,8 +106,8 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 		return 0;
 	}
 
-	unsigned int imgW = getImgInfo(image,'w');
-	unsigned int imgH = getImgInfo(image,'h');
+	unsigned int imgW = getPNGinfo(image,'w');
+	unsigned int imgH = getPNGinfo(image,'h');
 
 
 	fseek(image, 0L, SEEK_END);
@@ -209,7 +209,7 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 		    break;
 	    }
 	}
-	unsigned char *new_buffer = malloc(imgW*imgW*5);
+	unsigned char *new_buffer = malloc(imgH*imgW*5);
 
 	k = 0;
 
