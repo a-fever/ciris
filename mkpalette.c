@@ -1,15 +1,30 @@
 #include "./png_decode.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
-int main(int argc, char * argv[])
+int main(int argc, char *argv[])
 {
 	int i; int j; unsigned char * arrayPtr;
 	arrayPtr = processPNG(argv[1]);
 
+        FILE *image = fopen(argv[1], "rb");
+
+        if(image == NULL){
+            printf("IMAGE NOT FOUND. DID YOU TYPE THE CORRECT PATH?\n");
+            return 0;
+        }
+
+
 	if (arrayPtr == 0){
 	    return -1; // file
 	}
+
+	unsigned int imgH = getPNGinfo(image, 'h');
+	unsigned int imgW = getPNGinfo(image, 'w');
+	unsigned int imgSize = getPNGinfo(image, 'a');
+
+        fclose(image);
 
 	struct color_hex{
             unsigned char R;
@@ -20,7 +35,7 @@ int main(int argc, char * argv[])
 
         typedef struct color_hex color;
 
-        color pixelArray[64];
+        color *pixelArray = malloc(sizeof(color)*imgSize);
 
         j = 0;
 
@@ -45,6 +60,5 @@ int main(int argc, char * argv[])
  //            printf("\n");
  //            }
  //        }
-
 
 }
