@@ -59,11 +59,11 @@ int main(int argc, char *argv[])
 
         fclose(image);
 
-        color *pixelArray = malloc(sizeof(color)*imgSize);
+        color *pixelArray = malloc(sizeof(color*)*imgSize);
 
         j = 0;
 
-        for (i = 0; i < 64; i++){
+        for (i = 0; i < imgSize; i++){
             pixelArray[i].R = arrayPtr[j];
             pixelArray[i].G = arrayPtr[j + 1];
             pixelArray[i].B = arrayPtr[j + 2];
