@@ -3,6 +3,40 @@
 #include <string.h>
 #include <stdlib.h>
 
+struct color_hex{
+    unsigned char R;
+    unsigned char G;
+    unsigned char B;
+    unsigned char A;
+};
+
+typedef struct color_hex color;
+
+color* get_parsed(unsigned int* color_index, unsigned int len)
+{
+    color* result = malloc(sizeof(color*) * len);
+    unsigned int j = 0;
+    for (unsigned int i = 0; i < (256*256*256); i++){
+        if(color_index[i]){
+            result[j].R = i/(256*256);
+            result[j].G = i/(256);
+            result[j].B = i;
+
+            //printf("%.6X is %.2X, %.2X, %.2X.\n", i, result[j].R, result[j].G, result[j].B);
+            j++;
+        }
+    }
+
+    return result;
+}
+
+void get_printed(color* pixel, unsigned int len)
+{
+    for (int i = 0; i < len; i++){
+         printf("\033[38;2;%d;%d;%dmtest :)\n\033[0m", pixel[i].R, pixel[i].G, pixel[i].B);
+    }
+}
+
 int main(int argc, char *argv[])
 {
 	int i; int j; unsigned char * arrayPtr;
@@ -15,7 +49,6 @@ int main(int argc, char *argv[])
             return 0;
         }
 
-
 	if (arrayPtr == 0){
 	    return -1; // file
 	}
@@ -26,15 +59,6 @@ int main(int argc, char *argv[])
 
         fclose(image);
 
-	struct color_hex{
-            unsigned char R;
-            unsigned char G;
-            unsigned char B;
-            unsigned char A;
-        };
-
-        typedef struct color_hex color;
-
         color *pixelArray = malloc(sizeof(color)*imgSize);
 
         j = 0;
@@ -44,21 +68,38 @@ int main(int argc, char *argv[])
             pixelArray[i].G = arrayPtr[j + 1];
             pixelArray[i].B = arrayPtr[j + 2];
             pixelArray[i].A = 0xFF;
-            j = j + 4;                    //alpha doesnt matter but i dont wanna ignore it for some reason. what if it has
-        }                           //feelings
-
-	for (i = 0; i < 64; i++){ //this feels really really stupid
-            printf("#%.2X%.2X%.2X%.2X\n", pixelArray[i].R, pixelArray[i].G ,pixelArray[i].B, pixelArray[i].A);
+            j = j + 4;
         }
 
+        unsigned int *index = malloc(256*256*256*4);
+        memset(index, 0, 256*256*256*4);
 
-	// for (i = 0; i < 256; i++){
- //            printf("%.2X", arrayPtr[i]);
- //            if ((i+1) % 4 == 0){
- //                printf(" ");
- //            }if ((i+1) % 32 == 0){
- //            printf("\n");
- //            }
- //        }
+        if (index == NULL){
+            printf("Mario I fucka up the allocation\n"); //hopefully this never ever prints
+            return -1;
+        }
+
+        j = 0;
+
+        for (i = 0; i < imgSize; i++){
+            j = ((pixelArray[i].B) + (pixelArray[i].G * 256) + (pixelArray[i].R * 256 * 256));
+            //printf("%X\n ", j);
+            *(index + j) = *(index + j) + 1; //cant do ++ =_=
+        }
+        j = 0;
+
+        unsigned int total_num_colors = 0;
+
+        for (i = 0; i < (256*256*256); i++){
+            if (*(index+i)){
+                total_num_colors++;
+            }
+        }
+
+        get_printed(get_parsed(index, total_num_colors), total_num_colors);
+
+        printf("\n");
+
+        free(index);
 
 }
