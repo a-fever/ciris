@@ -9,6 +9,7 @@ int PNG_MAGIC_NUMBER[8] ={0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A};
 
 //TODO: replace all the VLAs with malloced arrays
 //	clean up testing print functions
+//      test larger files, libdef doesnt like it for some reason
 
 unsigned char scanner(char *keyword,unsigned char *target,unsigned long imageSize) //finds the first instance of the keyword
 {
@@ -131,7 +132,7 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 
 	int IDAT_size = imgDataEnd - imgDataStart;
 
-	unsigned char IDAT_buffer[IDAT_size];
+	unsigned char* IDAT_buffer = malloc(IDAT_size*(sizeof(unsigned char)));
 
 	for (i = 0; i < IDAT_size; i++){
 		IDAT_buffer[i] = imageData[imgDataStart+i];
@@ -170,31 +171,37 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 	for (i = 0; i < imgH; i++){	// [c][b]
 	    switch (imageArray[0][i]) {			// [a][x]
 		case 0x00: // x = x
+			printf("0");
 		    for (j = 1; j < imgW*4; j++){
 			imageArray[j-1][i] = (imageArray[j][i]);
-		    }
+		    }break;
+
 		case 0x01: // x = x + a
-		    for (j = 0; j < 4; j++){
-			imageArray[j][i] = imageArray[j+1][i];
+			printf("1");
+		    for (j = 1; j < 5; j++){
+			imageArray[j-1][i] = imageArray[j][i];
 		    }
-		    for (j = 4; j <imgH*4; j++){
-			imageArray[j][i] = imageArray[j-4][i];
+		    for (j = 5; j <imgH*4; j++){
+			imageArray[j-1][i] = imageArray[j-5][i] + imageArray[j][i];
 		    }
 
 		    break;
+
+
 		case 0x02: // x = x + b
-		    for (j = 5; j < imgW*4+1; j++){
-			if (i != 0){ //will a first line ever have 0x02? i dont think so lol
-			    imageArray[j][i] = imageArray[j - 4][i] + imageArray[j][i];
-			}else{
-				printf("if you're seeing this, something went terribly terribly wrong");
-			    return 0;
-			}
-		    } break;
+			printf("2");
+		    for (j = 0; j < imgW*4+1; j++){
+			    imageArray[j-1][i] = mod256(imageArray[j][i]+imageArray[j-1][i-1]);
+		    }break;
+
+
 		case 0x03: // x = mod256(x + (a + b)/2)
-		    imageArray[j][i] = imageArray[j+1][i];
-		    imageArray[j][i] = avgFilter(imageArray[j-1][i],imageArray[j][i-1]) + imageArray[j][i];
+		    break;
+
+
+
 		case 0x04: // paeth algorithm.
+			printf("4");
 		    for (j = 0; j < imgW*4+1; j++){
 			imageArray[j][i] = imageArray[j+1][i];
 			if (j == 0){
@@ -204,11 +211,12 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 			} else {
 			imageArray[j][i] = mod256(paethPredictor(imageArray[j-4][i], imageArray[j][i-1], imageArray[j-4][i-1]) + imageArray[j][i]);
 			}
-                    }
+                    } break;
 		default:
 		    break;
 	    }
 	}
+	printf("\n");
 	unsigned char *new_buffer = malloc(imgH*imgW*5);
 
 	k = 0;
@@ -216,26 +224,15 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 	for (i = 0; i < imgH; i++){		//turning the pixel data into a single string
 	    for (j = 0; j < (imgW*4)-1; j++){	//bc i dont understand how to do it otherwise
 		new_buffer[k] = imageArray[j][i];
-		printf("%.2X ",imageArray[j][i]);
+		printf("%3d ",imageArray[j][i]);
 		k++;
 	    }
 	    printf("\n");
 	    k++;
 	}
-
+/*
 	printf("\n");
-	for (i = 0; i < imgH+1; i++){
-	    printf("%d:", i);
-	    for (j = 0; j < imgW*4+12; j++){
-		if (j % 4 == 0){
-		    printf(" #");}
-		    printf("%.2X", imageArray[j][i]);
-	    }
-	    printf("\n");
-	}
-
-	printf("\n");
-	for (i = 0; i < imgH+1; i++){
+	for (i = 0; i < imgH; i++){
 	    printf("%d:", i);
 	    for (j = 0; j < imgW*4; j++){
 		if (j % 4 == 0){
@@ -244,6 +241,17 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 	    }
 	    printf("\n");
 	}
+
+	printf("\n");
+	for (i = 0; i < imgH; i++){
+	    printf("%d:", i);
+	    for (j = 0; j < imgW*4; j++){
+		if (j % 4 == 0){
+		    printf(" #");}
+		    printf("%.2X", imageArray[j][i]);
+	    }
+	    printf("\n");
+	}*/
 
 	unsigned char *image_data = new_buffer;
 
