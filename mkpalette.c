@@ -21,6 +21,7 @@ color* get_parsed(unsigned int* color_index, unsigned int len)
             result[j].R = i/(256*256);
             result[j].G = i/(256);
             result[j].B = i;
+            result[j].A = 0xFF;
 
             //printf("%.6X is %.2X, %.2X, %.2X.\n", i, result[j].R, result[j].G, result[j].B);
             j++;
@@ -33,7 +34,7 @@ color* get_parsed(unsigned int* color_index, unsigned int len)
 void get_printed(color* pixel, unsigned int len)
 {
     for (int i = 0; i < len; i++){
-         printf("\033[38;2;%d;%d;%dmtest :)\n\033[0m", pixel[i].R, pixel[i].G, pixel[i].B);
+         printf("\033[38;2;%d;%d;%dm██\033[0m", pixel[i].R, pixel[i].G, pixel[i].B);
     }
 }
 
@@ -69,6 +70,8 @@ int main(int argc, char *argv[])
             pixelArray[i].B = arrayPtr[j + 2];
             pixelArray[i].A = 0xFF;
             j = j + 4;
+            get_printed(&pixelArray[i], 1);
+            if ((i + 1) % imgW == 0) printf("\n");
         }
 
         unsigned int *index = malloc(256*256*256*4);
