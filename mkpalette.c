@@ -1,3 +1,11 @@
+
+   /*
+    * THE WORLDS GREATEST PNG PRINTER.
+    * BUT ONLY IF ITS NOT INTERLACED.
+    * YEAH
+    */
+
+
 #include "./png_decode.h"
 #include <stdio.h>
 #include <string.h>
@@ -99,7 +107,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        get_printed(get_parsed(index, total_num_colors), total_num_colors);
+        //get_printed(get_parsed(index, total_num_colors), total_num_colors);
 
         printf("\n");
 
