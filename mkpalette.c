@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <math.h>
 
 struct color_hex{
     unsigned char R;
@@ -38,8 +37,6 @@ void get_printed(color* pixel, unsigned int len)
          printf("\033[38;2;%d;%d;%dm██\033[0m", pixel[i].R, pixel[i].G, pixel[i].B);
     }
 }
-
-
 
 int main(int argc, char *argv[])
 {
@@ -90,7 +87,7 @@ int main(int argc, char *argv[])
         for (i = 0; i < imgSize; i++){
             j = ((pixelArray[i].B) + (pixelArray[i].G * 256) + (pixelArray[i].R * 256 * 256));
             //printf("%X\n ", j);
-            *(index + j) += 1;
+            *(index + j) = *(index + j) + 1; //cant do ++ =_=
         }
         j = 0;
 
@@ -102,25 +99,10 @@ int main(int argc, char *argv[])
             }
         }
 
+        get_printed(get_parsed(index, total_num_colors), total_num_colors);
+
         printf("\n");
-        color* colorParsed = get_parsed(index, total_num_colors);
-        int step = total_num_colors / 8;
 
         free(index);
-
-        printf("Lightest color: #%.2X%.2X%.2X ",
-            colorParsed[total_num_colors-1].R,
-            colorParsed[total_num_colors-1].G,
-            colorParsed[total_num_colors-1].B);
-
-        get_printed(&colorParsed[total_num_colors-1],1);
-        printf("\n");
-        printf("Darkest color:  #%.2X%.2X%.2X ",
-               colorParsed[0].R,
-               colorParsed[0].G,
-               colorParsed[0].B);
-
-        get_printed(&colorParsed[0],1);
-        printf("\n");
 
 }
