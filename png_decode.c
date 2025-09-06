@@ -68,7 +68,7 @@ int mod256(int x)
 	return x;
 }
 
-int avgFilter(float a, float b) //NOTE i dont even know if this works...
+int avgFilter(float a, float b)
 {
     return floor((a+b)/2);
 }
@@ -153,14 +153,14 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 
 // now the fun really begins
 
-	unsigned char imageArray[(imgW*4-1)][(imgH+1)];
+	unsigned char *imageArray = malloc (sizeof(unsigned char)*imgW*imgH*5);
 
 	int j = 0; int k = 0;
 			//i is the vertical index, j is the horizontal jndex, and k is the total counter kndex :-)
 	for (i = 0; i < imgH; i++){
 		for (j = 0; j < imgW*4; j++){
-		imageArray[j][i] = buffer[k];
-		printf("%.2X ", imageArray[j][i]);
+		imageArray[j + (i*imgW*4)] = buffer[k];
+		printf("%.2X ", imageArray[j + (i*imgW*4)]);
 		k++;
 		}
 		printf("\n");
@@ -169,20 +169,20 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 
 	printf("\n");
 	for (i = 0; i < imgH; i++){	                // [c][b]
-	    switch (imageArray[0][i]) {			// [a][x]
+	    switch (imageArray[i*imgW*4]) {			// [a][x]
 		case 0x00: // x = x
 			printf("0");
 		    for (j = 1; j < imgW*4; j++){
-			imageArray[j-1][i] = (imageArray[j][i]);
+			imageArray[(j-1) + (i*imgW*4)] = (imageArray[j + (i*imgW*4)]);
 		    }break;
 
 		case 0x01: // x = x + a
 			printf("1");
 		    for (j = 1; j < 5; j++){
-			imageArray[j-1][i] = imageArray[j][i];
+			imageArray[(j-1) + (i*imgW*4)] = imageArray[j + (i*imgW*4)];
 		    }
 		    for (j = 5; j <imgW*4; j++){
-			imageArray[j-1][i] = mod256(imageArray[j-5][i] + imageArray[j][i]);
+			imageArray[(j-1) + (i*imgW*4)] = mod256(imageArray[(j-5) + (i*imgW*4)] + imageArray[j + (i*imgW*4)]);
 		    }
 
 		    break;
@@ -191,35 +191,41 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 		case 0x02: // x = x + b
 			printf("2");
 		    for (j = 1; j < imgW*4+1; j++){
-			    imageArray[j-1][i] = mod256(imageArray[j][i]+imageArray[j-1][i-1]);
+			    imageArray[(j-1) + (i*imgW*4)] = mod256(imageArray[j + (i*imgW*4)]+imageArray[(j-1) + ((i-1)*imgW*4)]);
 		    }break;
 
 
 		case 0x03: // x = mod256(x + (a + b)/2)
 			printf("3");
-			for (j = 1; j < imgW*4+1; j++){
-				imageArray[j-1][i] = mod256(avgFilter(imageArray[j-1][i],imageArray[j][i-1]) + imageArray[j][i]);
+			for (j = 1; j < 5; j++){
+				imageArray[(j-1) + (i*imgW*4)] = mod256(avgFilter(0,imageArray[(j-1) + ((i-1)*imgW*4)]) + imageArray[(j) + (i*imgW*4)]);
+			}
+			for (j = 5; j < imgW*4+1; j++){
+				imageArray[(j-1) + (i*imgW*4)] = mod256(avgFilter(imageArray[(j-5) + (i*imgW*4)],imageArray[(j-1) + ((i-1)*imgW*4)]) + imageArray[j + (i*imgW*4)]);
 			}
 		    break;
 
 
-
 			case 0x04: // paeth algorithm
 			printf("4");
-		    for (j = 0; j < imgW*4+1; j++){
-			imageArray[j][i] = imageArray[j+1][i];
+		    for (j = 0; j < imgW*4; j++){
+			imageArray[j + (i*imgW*4)] = imageArray[(j+1) + (i*imgW*4)];
 			if (j == 0){ //if its the first entry, a and c == 0
-			imageArray[j][i] = mod256(paethPredictor(0, imageArray[j][i-1], 0) + imageArray[j][i]);
+			imageArray[j + (i*imgW*4)] = mod256(paethPredictor(0, imageArray[j + ((i-1)*imgW*4)], 0) + imageArray[j + (i*imgW*4)]);
 			} else if (j != 0 && j < 4){ //if its one of the first 4 bytes, a and c == 0;
-			imageArray[j][i] = mod256(paethPredictor(0, imageArray[j][i-1], 0) + imageArray[j][i]);
+			imageArray[j + (i*imgW*4)] = mod256(paethPredictor(0, imageArray[j + ((i-1)*imgW*4)], 0) + imageArray[j + (i*imgW*4)]);
 			} else { //else, normal paeth decoding
-			imageArray[j][i] = mod256(paethPredictor(imageArray[j-4][i], imageArray[j][i-1], imageArray[j-4][i-1]) + imageArray[j][i]);
+			imageArray[j + (i*imgW*4)] = mod256(paethPredictor(imageArray[(j-4) + (i*imgW*4)], imageArray[j + ((i-1)*imgW*4)], imageArray[(j-4) + ((i-1)*imgW*4)]) + imageArray[j + (i*imgW*4)]);
 			}
                     } break;
 		default:
 		    break;
 	    }
 	}
+
+	//my life wouldve been so much easier had i converted the imageArray into a color struct :|
+	//...TODO: convert this to a color struct. we wouldnt have to have all those *4s/-4s/-5s everywhere
+
 	printf("\n");
 	unsigned char *new_buffer = malloc(imgH*imgW*5);
 
@@ -227,8 +233,8 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 
 	for (i = 0; i < imgH; i++){		//turning the pixel data into a single string
 	    for (j = 0; j < (imgW*4)-1; j++){	//bc i dont understand how to do it otherwise
-		new_buffer[k] = imageArray[j][i];
-		//printf("%3d ",imageArray[j][i]);
+		new_buffer[k] = imageArray[j + (i*imgW*4)];
+		//printf("%3d ",imageArray[j + (i*imgW*4)]);
 		k++;
 	    }
 	    //printf("\n");
@@ -241,7 +247,7 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 	    for (j = 0; j < imgW*4; j++){
 		if (j % 4 == 0){
 		    printf(" #");}
-		    printf("%.2X", imageArray[j][i]);
+		    printf("%.2X", imageArray[j + (i*imgW*4)]);
 	    }
 	    printf("\n");
 	}
@@ -252,7 +258,7 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 	    for (j = 0; j < imgW*4; j++){
 		if (j % 4 == 0){
 		    printf(" #");}
-		    printf("%.2X", imageArray[j][i]);
+		    printf("%.2X", imageArray[j + (i*imgW*4)]);
 	    }
 	    printf("\n");
 	}
