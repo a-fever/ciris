@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-struct color_hex{
+struct color_hex{ //TODO: add a hex code entry for the love of god
     unsigned char R;
     unsigned char G;
     unsigned char B;
@@ -39,6 +39,10 @@ void get_printed(color* pixel, unsigned int len)
     }
 }
 
+void pixel_print(color pixel)
+{
+     printf("\033[38;2;%d;%d;%dm██\033[0m", pixel.R, pixel.G, pixel.B);
+}
 
 
 int main(int argc, char *argv[])
@@ -105,6 +109,16 @@ int main(int argc, char *argv[])
         printf("\n");
         color* colorParsed = get_parsed(index, total_num_colors);
         int step = total_num_colors / 8;
+
+        for (i = 0; i <total_num_colors; i += step){
+            pixel_print(colorParsed[i]);
+            printf(" - #%.2X%.2X%.2X\n",
+                   colorParsed[i].R,
+                   colorParsed[i].G,
+                   colorParsed[i].B);
+        }
+
+        printf("\n");
 
         free(index);
 
