@@ -18,7 +18,7 @@ unsigned int scanner(char *keyword,unsigned char *target,unsigned long imageSize
 
 	for (i = 0; i < imageSize; i++){
 		if (target[i] == keyword[0] && target[i+1] == keyword[1] && target[i+2] == keyword[2] && target[i+3] == keyword[3]){
-			printf("%c%c%c%c = %c%c%c%c\n", target[i],target[i+1],target[i+2],target[i+3],keyword[0],keyword[1],keyword[2],keyword[3]);
+			//printf("%c%c%c%c = %c%c%c%c\n", target[i],target[i+1],target[i+2],target[i+3],keyword[0],keyword[1],keyword[2],keyword[3]);
 			location = i+4;
 			i = imageSize;
 		}
@@ -129,8 +129,8 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 
 	int IDAT_size = imgDataEnd - imgDataStart;
 
-	printf("size: %X, %X\n", imgDataStart, imgDataEnd);
-	printf("size: %lu, %d\n", imageSize, IDAT_size);
+	// printf("size: %X, %X\n", imgDataStart, imgDataEnd);
+	// printf("size: %lu, %d\n", imageSize, IDAT_size);
 
 	unsigned char* IDAT_buffer = malloc(IDAT_size*(sizeof(unsigned char)));
 
@@ -160,24 +160,24 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 	for (i = 0; i < imgH; i++){
 		for (j = 0; j < imgW*4; j++){
 		imageArray[j + (i*imgW*4)] = buffer[k];
-		printf("%.2X ", imageArray[j + (i*imgW*4)]);
+		//printf("%.2X ", imageArray[j + (i*imgW*4)]);
 		k++;
 		}
-		printf("\n");
+		//printf("\n");
 		k++;
 	}
 
-	printf("\n");
+	//printf("\n");
 	for (i = 0; i < imgH; i++){	                // [c][b]
 	    switch (imageArray[i*imgW*4]) {			// [a][x]
 		case 0x00: // x = x
-			printf("0");
+			//printf("0");
 		    for (j = 1; j < imgW*4; j++){
 			imageArray[(j-1) + (i*imgW*4)] = (imageArray[j + (i*imgW*4)]);
 		    }break;
 
 		case 0x01: // x = x + a
-			printf("1");
+			//printf("1");
 		    for (j = 1; j < 5; j++){
 			imageArray[(j-1) + (i*imgW*4)] = imageArray[j + (i*imgW*4)];
 		    }
@@ -189,14 +189,14 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 
 
 		case 0x02: // x = x + b
-			printf("2");
+			//printf("2");
 		    for (j = 1; j < imgW*4+1; j++){
 			    imageArray[(j-1) + (i*imgW*4)] = mod256(imageArray[j + (i*imgW*4)]+imageArray[(j-1) + ((i-1)*imgW*4)]);
 		    }break;
 
 
 		case 0x03: // x = mod256(x + (a + b)/2)
-			printf("3");
+			//printf("3");
 			for (j = 1; j < 5; j++){
 				imageArray[(j-1) + (i*imgW*4)] = mod256(avgFilter(0,imageArray[(j-1) + ((i-1)*imgW*4)]) + imageArray[(j) + (i*imgW*4)]);
 			}
@@ -207,7 +207,7 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 
 
 			case 0x04: // paeth algorithm
-			printf("4");
+			//printf("4");
 		    for (j = 0; j < imgW*4; j++){
 			imageArray[j + (i*imgW*4)] = imageArray[(j+1) + (i*imgW*4)];
 			if (j == 0){ //if its the first entry, a and c == 0
@@ -226,7 +226,7 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 	//my life wouldve been so much easier had i converted the imageArray into a color struct :|
 	//...TODO: convert this to a color struct. we wouldnt have to have all those *4s/-4s/-5s everywhere
 
-	printf("\n");
+	// printf("\n");
 	unsigned char *new_buffer = malloc(imgH*imgW*5);
 
 	k = 0;
@@ -241,27 +241,27 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 	    k++;
 	}
 
-	printf("\n");
-	for (i = 0; i < imgH; i++){
-	    printf("%d:", i);
-	    for (j = 0; j < imgW*4; j++){
-		if (j % 4 == 0){
-		    printf(" #");}
-		    printf("%.2X", imageArray[j + (i*imgW*4)]);
-	    }
-	    printf("\n");
-	}
-
-	printf("\n");
-	for (i = 0; i < imgH; i++){
-	    printf("%d:", i);
-	    for (j = 0; j < imgW*4; j++){
-		if (j % 4 == 0){
-		    printf(" #");}
-		    printf("%.2X", imageArray[j + (i*imgW*4)]);
-	    }
-	    printf("\n");
-	}
+	// printf("\n");
+	// for (i = 0; i < imgH; i++){
+	//     printf("%d:", i);
+	//     for (j = 0; j < imgW*4; j++){
+	// 	if (j % 4 == 0){
+	// 	    printf(" #");}
+	// 	    printf("%.2X", imageArray[j + (i*imgW*4)]);
+	//     }
+	//     printf("\n");
+	// }
+ //
+	// printf("\n");
+	// for (i = 0; i < imgH; i++){
+	//     printf("%d:", i);
+	//     for (j = 0; j < imgW*4; j++){
+	// 	if (j % 4 == 0){
+	// 	    printf(" #");}
+	// 	    printf("%.2X", imageArray[j + (i*imgW*4)]);
+	//     }
+	//     printf("\n");
+	// }
 
 	unsigned char *image_data = new_buffer;
 
