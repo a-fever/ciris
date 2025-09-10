@@ -28,7 +28,7 @@ unsigned int scanner(char *keyword,unsigned char *target,unsigned long imageSize
 
 
 }
-unsigned int getPNGinfo(FILE *img, unsigned char type)
+unsigned int get_png_size(FILE *img, unsigned char type)
 //returns width, height, or area depending on parameter set
 {
 	rewind(img);
@@ -104,8 +104,8 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 		return 0;
 	}
 
-	unsigned int imgW = getPNGinfo(image,'w');
-	unsigned int imgH = getPNGinfo(image,'h');
+	unsigned int imgW = get_png_size(image,'w');
+	unsigned int imgH = get_png_size(image,'h');
 
 
 	fseek(image, 0L, SEEK_END);
