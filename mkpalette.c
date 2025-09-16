@@ -78,9 +78,9 @@ int main(int argc, char *argv[])
 	    return -1; // file
 	}
 
-	unsigned int imgH = getPNGinfo(image, 'h');
-	unsigned int imgW = getPNGinfo(image, 'w');
-	unsigned int imgSize = getPNGinfo(image, 'a');
+	unsigned int imgH = get_png_size(image, 'h');
+	unsigned int imgW = get_png_size(image, 'w');
+	unsigned int imgSize = get_png_size(image, 'a');
 
         fclose(image);
 
@@ -98,8 +98,8 @@ int main(int argc, char *argv[])
             pixelArray[i].B = arrayPtr[j + 2];
             pixelArray[i].A = 0xFF;
             j = j + 4;
-            get_printed(&pixelArray[i], 1);
-            if ((i + 1) % imgW == 0) printf("\n");
+            //get_printed(&pixelArray[i], 1);
+            //if ((i + 1) % imgW == 0) printf("\n");
         }
 
         unsigned int *index = malloc(256*256*256*4);
