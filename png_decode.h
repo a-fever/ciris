@@ -5,6 +5,6 @@
 
 unsigned char * processPNG(char *fileLocation);
 
-unsigned int getPNGinfo(FILE *img, unsigned char type);
+unsigned int get_png_size(FILE *img, unsigned char type);
 
 #endif
