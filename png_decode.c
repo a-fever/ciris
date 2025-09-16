@@ -11,6 +11,10 @@ int PNG_MAGIC_NUMBER[8] ={0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A};
 //	clean up testing print functions
 //      test larger files, libdef doesnt like it for some reason
 
+// BUG: larger images return non-zero
+// cause may be the wrong decompression method (im skeptical)
+// or it not knowign what to do with multiple IDAT chunks (likely)
+
 unsigned int scanner(char *keyword,unsigned char *target,unsigned long imageSize) //finds the first instance of the keyword
 {
 	int i;
@@ -25,9 +29,29 @@ unsigned int scanner(char *keyword,unsigned char *target,unsigned long imageSize
 	}
 
 		return location;
-
-
 }
+
+//better_scanner accepts two keywords (one start and one finish)
+// a better method is to have it work with the target via actual
+// file functs instead of whatever all this is.
+// like let it fscan thru instead of working w the imageData var
+// and also thisll let us get rid of imageData for realsies
+// because its really really really useless
+// i just wasnt aware of how much u can rlly do with the f functions
+
+// TODO: look at the stdlib source code. not important
+// im just curious. goodnight cruel world.
+
+typedef struct keyword{
+	char* word[5];
+} keyword;
+
+unsigned int better_scanner(unsigned char *target,unsigned long imageSize) //WIP
+{
+	keyword chunk_keywords[2] = {"IDAT", "IEND"};
+	return 0;
+}
+
 unsigned int get_png_size(FILE *img, unsigned char type)
 //returns width, height, or area depending on parameter set
 {
@@ -118,7 +142,7 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 	int i = 0;
 
 	while (PNG_MAGIC_NUMBER[i] == imageData[i] && i < 8) {
-	i++;
+		i++;
 	}
 	if (i < 8){
 		printf("INVALID OR CORRUPTED PNG.\n");
@@ -159,11 +183,9 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 			//i is the vertical index, j is the horizontal jndex, and k is the total counter kndex :-)
 	for (i = 0; i < imgH; i++){
 		for (j = 0; j < imgW*4; j++){
-		imageArray[j + (i*imgW*4)] = buffer[k];
-		//printf("%.2X ", imageArray[j + (i*imgW*4)]);
-		k++;
+			imageArray[j + (i*imgW*4)] = buffer[k];
+			k++;
 		}
-		//printf("\n");
 		k++;
 	}
 
