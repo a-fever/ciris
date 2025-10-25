@@ -3,17 +3,10 @@
 #include <stdlib.h>
 #include "math.h"
 #include "/usr/include/libdeflate.h"
+#include "./export.h"
 
 int i = 0;
 int PNG_MAGIC_NUMBER[8] ={0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A};
-
-//TODO: replace all the VLAs with malloced arrays
-//	clean up testing print functions
-//      test larger files, libdef doesnt like it for some reason
-
-// BUG: larger images return non-zero
-// cause may be the wrong decompression method (im skeptical)
-// or it not knowign what to do with multiple IDAT chunks (likely)
 
 unsigned int scanner(char *keyword,unsigned char *target,unsigned long imageSize) //finds the first instance of the keyword
 {
@@ -22,7 +15,6 @@ unsigned int scanner(char *keyword,unsigned char *target,unsigned long imageSize
 
 	for (i = 0; i < imageSize; i++){
 		if (target[i] == keyword[0] && target[i+1] == keyword[1] && target[i+2] == keyword[2] && target[i+3] == keyword[3]){
-			//printf("%c%c%c%c = %c%c%c%c\n", target[i],target[i+1],target[i+2],target[i+3],keyword[0],keyword[1],keyword[2],keyword[3]);
 			location = i+4;
 			i = imageSize;
 		}
@@ -39,16 +31,13 @@ unsigned int scanner(char *keyword,unsigned char *target,unsigned long imageSize
 // because its really really really useless
 // i just wasnt aware of how much u can rlly do with the f functions
 
-// TODO: look at the stdlib source code. not important
-// im just curious. goodnight cruel world.
-
 typedef struct keyword{
 	char* word[5];
 } keyword;
 
 unsigned int better_scanner(unsigned char *target,unsigned long imageSize) //WIP
 {
-	keyword chunk_keywords[2] = {"IDAT", "IEND"};
+	keyword chunk_keywords[2] = {"IDAT", ""};
 	return 0;
 }
 
@@ -68,14 +57,15 @@ unsigned int get_png_size(FILE *img, unsigned char type)
 	fread(height_b, 1, 4, img);
 	rewind(img);
 
-	for (i = 0; i < 4; i++){	//combining the bytes. theres gotta be a better way of doing this
-		width = width * 10;
+	for (i = 0; i < 4; i++){
+		width = width * 256;
 		width = width_b[i] + width;
 	}
 	for (i = 0; i < 4; i++){
-		height = height * 10;
+		height = height * 256;
 		height = height_b[i] + height;
 	}
+	printf("\n");
 
 	if (type == 'h'){
 		return height;
@@ -131,6 +121,8 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 	unsigned int imgW = get_png_size(image,'w');
 	unsigned int imgH = get_png_size(image,'h');
 
+	printf("\nThis image is %d by %d\n", imgW, imgH);
+
 
 	fseek(image, 0L, SEEK_END);
 	unsigned long imageSize = ftell(image);
@@ -166,7 +158,7 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 
 	void *decompressor = libdeflate_alloc_decompressor();
 
-	size_t bufferSize = imgW * imgH * 64;
+	size_t bufferSize = imgW * imgH * 128;
 
 	unsigned char *buffer = malloc(bufferSize*sizeof(unsigned char*));
 
@@ -182,9 +174,11 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 	int j = 0; int k = 0;
 			//i is the vertical index, j is the horizontal jndex, and k is the total counter kndex :-)
 	for (i = 0; i < imgH; i++){
+		//printf("\n\n%d: ", i);
 		for (j = 0; j < imgW*4; j++){
 			imageArray[j + (i*imgW*4)] = buffer[k];
 			k++;
+			//printf("%.2X ", imageArray[j + (i*imgW*4)]);
 		}
 		k++;
 	}
@@ -263,7 +257,9 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 	    k++;
 	}
 
-	// printf("\n");
+	export_test_png(imageArray, imgW, imgH);
+
+	printf("\n");
 	// for (i = 0; i < imgH; i++){
 	//     printf("%d:", i);
 	//     for (j = 0; j < imgW*4; j++){
@@ -273,20 +269,23 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 	//     }
 	//     printf("\n");
 	// }
- //
-	// printf("\n");
-	// for (i = 0; i < imgH; i++){
-	//     printf("%d:", i);
-	//     for (j = 0; j < imgW*4; j++){
-	// 	if (j % 4 == 0){
-	// 	    printf(" #");}
-	// 	    printf("%.2X", imageArray[j + (i*imgW*4)]);
-	//     }
-	//     printf("\n");
-	// }
+
+	printf("\n");
+	for (i = 0; i < imgH; i++){
+	    printf("%d:", i);
+	    for (j = 0; j < imgW*4; j++){
+		if (j % 4 == 0){
+		    printf(" #");}
+		    printf("%.2X", imageArray[j + (i*imgW*4)]);
+	    }
+	    printf("\n");
+	}
 
 	unsigned char *image_data = new_buffer;
 
 	fclose(image);
 	return image_data;
 }
+
+/* is it a memory issue
+ * is it a idat issue?*/

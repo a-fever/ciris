@@ -64,7 +64,8 @@ color saturate_color(color pixel)
 
 int main(int argc, char *argv[])
 {
-	int i; int j; unsigned char * arrayPtr;
+	int i; int j; 
+	unsigned char * arrayPtr;
 	arrayPtr = processPNG(argv[1]);
 
         FILE *image = fopen(argv[1], "rb");
@@ -97,9 +98,9 @@ int main(int argc, char *argv[])
             pixelArray[i].G = arrayPtr[j + 1];
             pixelArray[i].B = arrayPtr[j + 2];
             pixelArray[i].A = 0xFF;
-            j = j + 4;
-            //get_printed(&pixelArray[i], 1);
-            //if ((i + 1) % imgW == 0) printf("\n");
+            j += 4;
+            get_printed(&pixelArray[i], 1);
+            if ((i + 1) % imgW == 0) printf("\n");
         }
 
         unsigned int *index = malloc(256*256*256*4);
@@ -127,45 +128,49 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (total_num_colors < 8){
-            printf("This image contains too few colors to make a palette. Tough.\n");
-            return -1;
-        }
+        // PALETTE STUFF IDGAF ABT RN BECAUSE THIS DOESNT WORK
+        // if (total_num_colors < 8){
+        //     printf("This image contains too few colors to make a palette. Tough.\n");
+        //     return -1;
+        // }
+        //
+        // printf("\n");
+        // color* colorParsed = get_parsed(index, total_num_colors);
+        // int step = (total_num_colors) / 8;
+        //
+        // for (i = 0; i <total_num_colors; i += step){
+        //     pixel_print(saturate_color(colorParsed[i]));
+        //     printf(" - #%.2X%.2X%.2X\n",
+        //            colorParsed[i].R,
+        //            colorParsed[i].G,
+        //            colorParsed[i].B);
+        // }
+        //
+        // printf("\n");
+        //
+        // free(index);
+        //
+        // printf("Lightest color: #%X ",
+        //     colorParsed[total_num_colors-1].hex);
+        //
+        // get_printed(&colorParsed[total_num_colors-1],1);
+        //
+        // color test;
+        //
+        // test = colorParsed[total_num_colors-1];
+        //
+        // test = saturate_color(test);
+        //
+        // //pixel_print(test);
+        //
+        // printf("\n");
+        // printf("Darkest color:  #%X ",
+        //        colorParsed[0].hex);
+        //
+        // get_printed(&colorParsed[0],1);
 
         printf("\n");
-        color* colorParsed = get_parsed(index, total_num_colors);
-        int step = (total_num_colors) / 8;
 
-        for (i = 0; i <total_num_colors; i += step){
-            pixel_print(saturate_color(colorParsed[i]));
-            printf(" - #%.2X%.2X%.2X\n",
-                   colorParsed[i].R,
-                   colorParsed[i].G,
-                   colorParsed[i].B);
-        }
 
-        printf("\n");
-
-        free(index);
-
-        printf("Lightest color: #%X ",
-            colorParsed[total_num_colors-1].hex);
-
-        get_printed(&colorParsed[total_num_colors-1],1);
-
-        color test;
-
-        test = colorParsed[total_num_colors-1];
-
-        test = saturate_color(test);
-
-        //pixel_print(test);
-
-        printf("\n");
-        printf("Darkest color:  #%X ",
-               colorParsed[0].hex);
-
-        get_printed(&colorParsed[0],1);
-        printf("\n");
 
 }
