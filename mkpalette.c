@@ -41,7 +41,7 @@ void get_printed(color* pixel, unsigned int len)
 
 
 
-int main(int argc, char *argv[])
+int create_palette(int argc, char *argv[])
 {
 	int i; int j; unsigned char * arrayPtr;
 	arrayPtr = processPNG(argv[1]);
