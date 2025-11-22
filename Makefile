@@ -1,2 +1,2 @@
 iris: mkpalette.c
-	cc mkpalette.c png_decode.c /usr/lib/libdeflate.so -lm -o iris
+	cc main.c png_decode.c /usr/lib/libdeflate.so -lm -g -o iris
