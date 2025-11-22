@@ -1,13 +1,15 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <string.h>
 #include "math.h"
 #include "/usr/include/libdeflate.h"
+#include <stdbool.h>
 
 int i = 0;
 int PNG_MAGIC_NUMBER[8] ={0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A};
 
-//TODO: replace all the VLAs with malloced arrays
+//TODO: replace all the VLAs with malloced arrays DONE
 //	clean up testing print functions
 //      test larger files, libdef doesnt like it for some reason
 
@@ -25,11 +27,10 @@ unsigned int scanner(char *keyword,unsigned char *target,unsigned long imageSize
 	}
 
 		return location;
-
-
 }
-unsigned int getPNGinfo(FILE *img, unsigned char type)
+
 //returns width, height, or area depending on parameter set
+unsigned int getPNGinfo(FILE *img, unsigned char type)
 {
 	rewind(img);
 	fseek(img, 16, SEEK_SET);
@@ -40,7 +41,7 @@ unsigned int getPNGinfo(FILE *img, unsigned char type)
 	unsigned int width = 0;
 	unsigned int height = 0;
 
-	fread(width_b, 1, 4, img);	//goes through and manually saves each byte to their arrays. endian nonsense that i honestly dont understand
+	fread(width_b, 1, 4, img);
 	fread(height_b, 1, 4, img);
 	rewind(img);
 
@@ -94,95 +95,131 @@ int paethPredictor(int a, int b, int c)
 	}
 }
 
-unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i will ever write.
-{//image opener and checker
+unsigned char* DECODE_IDAT(unsigned char* chunk_ptr, unsigned long int len)
+{
+	unsigned char* decoded;
+	return decoded;
+}
 
-	FILE *image = fopen(fileLoc, "rb");
+unsigned long byte_to_num(unsigned char* byte_array)
+{
+	unsigned long result = 0;
+	for (int i = 0; i < 4; i++){
+		result = result * 256;
+		result = result + byte_array[i];
+	}
+	return result;
+}
 
-	if(image == NULL){
-		printf("IMAGE NOT FOUND. DID YOU TYPE THE CORRECT PATH?\n");
-		return 0;
+unsigned int CHECK_FOR_IEND()
+{
+	return 0;
+}
+
+unsigned char *processPNG(FILE* fptr)
+{
+	unsigned int imgW = getPNGinfo(fptr, 'w');
+	unsigned int imgH = getPNGinfo(fptr, 'h');
+
+	unsigned int i, check = 0; //i check, too!
+	unsigned char IDAT[4] = "IDAT";
+	unsigned char IEND[4] = "IEND";
+	unsigned char* check_buffer = malloc(sizeof(unsigned char)*4);
+
+	fread(check_buffer, 1, 4, fptr);
+
+	for (i = 0; i < 4; i++){ //checks for first IDAT
+		if (IDAT[i] == check_buffer[i]){
+			check++;
+		} else {
+			check = 0;
+			i = 0;
+			fseek(fptr, -3, SEEK_CUR);
+			fread(check_buffer, 1, 4, fptr);
+		}
 	}
 
-	unsigned int imgW = getPNGinfo(image,'w');
-	unsigned int imgH = getPNGinfo(image,'h');
+	unsigned char* size_in_bytes = malloc(sizeof(unsigned char)*4);
+	unsigned long idat_size;
+	unsigned long idat_size_sum = 0;
+
+	unsigned char* idat_data_buf = malloc(idat_size*5);
+	unsigned char* decomp_result_buf = malloc(idat_size*5);
+	unsigned char* concat_idat = malloc(imgW*imgH*5);
+	unsigned int reached_iend = false;
+	unsigned int ret_val;
+	check = 0;
+	void* decomp = libdeflate_alloc_decompressor();
+	unsigned long* actual_out;
+
+	fseek(fptr, -8, SEEK_CUR); //jump back to size
+	while (!reached_iend){ //starts at size of next buffer;
+		fread(size_in_bytes, 1, 4, fptr);
+		for (i = 0; i < 4; i++){
+			printf("%.2x ", size_in_bytes[i]);
+		} printf("\n");
+		idat_size = byte_to_num(size_in_bytes);
+
+		fseek(fptr, 4, SEEK_CUR); //skip IDAT
+
+		fread(idat_data_buf, 1, idat_size, fptr);
+		ret_val = libdeflate_zlib_decompress(decomp, idat_data_buf, idat_size, decomp_result_buf, (idat_size*5), actual_out);
+		printf("\n%d\n", ret_val);
+		printf("\n%lu\n", idat_size);
 
 
-	fseek(image, 0L, SEEK_END);
-	unsigned long imageSize = ftell(image);
-	rewind(image);
+		for (i = 0; i < idat_size; i++){
+			concat_idat[idat_size_sum + i] = decomp_result_buf[i];
+		} idat_size_sum += idat_size;
 
-	unsigned char *imageData = malloc(imageSize*(sizeof(unsigned char)));	// TODO: refactor so that imageData[] never gets made. its only
-	// used to look for IDAT/IEND which can be found by
-	fread(imageData, 1, imageSize, image);		// reading directly from the file.
-	int i = 0;
+		fseek(fptr, 8, SEEK_CUR); //skip CRC + size
 
-	while (PNG_MAGIC_NUMBER[i] == imageData[i] && i < 8) {
-	i++;
+		fread(check_buffer, 1, 4, fptr);
+		for (i = 0; i < 4; i++){ //check for IEND
+			if (IEND[i] == check_buffer[i]){
+				check++;
+			} else {
+				i = 4; //break loop. hoe
+			}
+		}
+		if (check == 4){
+			reached_iend = true;
+		} else {
+			fseek(fptr, -1*check, SEEK_CUR); // backup
+			check = 0;
+			i = 4; //break if loop;
+			fseek(fptr, -8, SEEK_CUR); // back to size
+		}
 	}
-	if (i < 8){
-		printf("INVALID OR CORRUPTED PNG.\n");
-		return 0;
-	}
-	int imgDataStart = scanner("IDAT",imageData,imageSize);
-	int imgDataEnd = scanner("IEND", imageData, imageSize) - 8;
-
-	int IDAT_size = imgDataEnd - imgDataStart;
-
-	printf("size: %X, %X\n", imgDataStart, imgDataEnd);
-	printf("size: %lu, %d\n", imageSize, IDAT_size);
-
-	unsigned char* IDAT_buffer = malloc(IDAT_size*(sizeof(unsigned char)));
-
-	for (i = 0; i < IDAT_size; i++){
-		IDAT_buffer[i] = imageData[imgDataStart+i];
-	}
-
-//libdeflate stuff
-
-	void *decompressor = libdeflate_alloc_decompressor();
-
-	size_t bufferSize = imgW * imgH * 64;
-
-	unsigned char *buffer = malloc(bufferSize*sizeof(unsigned char*));
-
-	size_t *bufferSizeActualPtr = &bufferSize;
-	//size_t *actualBytesOut;
-	int returnCode = libdeflate_zlib_decompress(decompressor, IDAT_buffer, IDAT_size, buffer, bufferSize, bufferSizeActualPtr);
-	printf("\n%d\n\n", returnCode);
-
-// now the fun really begins
-
-	unsigned char *imageArray = malloc (sizeof(unsigned char)*imgW*imgH*5);
 
 	int j = 0; int k = 0;
+	// unsigned char* imageArray = malloc(imgW*imgH*5);
+ //
+	// for (i = 0; i < imgH; i++){
+	// 	for (j = 0; j < imgW*4; j++){
+	// 		imageArray[j + (i*imgW*4)] = concat_idat[k];
+	// 		printf("%.2X ", imageArray[j + (i*imgW*4)]);
+	// 		k++;
+	// 	}
+	// 	printf("\n");
+	// 	k++;
+	// }
 			//i is the vertical index, j is the horizontal jndex, and k is the total counter kndex :-)
-	for (i = 0; i < imgH; i++){
-		for (j = 0; j < imgW*4; j++){
-		imageArray[j + (i*imgW*4)] = buffer[k];
-		printf("%.2X ", imageArray[j + (i*imgW*4)]);
-		k++;
-		}
-		printf("\n");
-		k++;
-	}
-
-	printf("\n");
 	for (i = 0; i < imgH; i++){	                // [c][b]
-	    switch (imageArray[i*imgW*4]) {			// [a][x]
+	    switch (concat_idat[i*imgW*4]) {		// [a][x]
 		case 0x00: // x = x
 			printf("0");
-		    for (j = 1; j < imgW*4; j++){
-			imageArray[(j-1) + (i*imgW*4)] = (imageArray[j + (i*imgW*4)]);
+		    for (j = 1; j <= imgW*4; j++){
+			concat_idat[(j-1) + (i*imgW*4)] = (concat_idat[j + (i*imgW*4)]);
 		    }break;
 
 		case 0x01: // x = x + a
 			printf("1");
 		    for (j = 1; j < 5; j++){
-			imageArray[(j-1) + (i*imgW*4)] = imageArray[j + (i*imgW*4)];
+			concat_idat[(j-1) + (i*imgW*4)] = concat_idat[j + (i*imgW*4)];
 		    }
-		    for (j = 5; j <imgW*4; j++){
-			imageArray[(j-1) + (i*imgW*4)] = mod256(imageArray[(j-5) + (i*imgW*4)] + imageArray[j + (i*imgW*4)]);
+		    for (j = 5; j <= imgW*4; j++){
+			concat_idat[(j-1) + (i*imgW*4)] = mod256(concat_idat[(j-5) + (i*imgW*4)] + concat_idat[j + (i*imgW*4)]);
 		    }
 
 		    break;
@@ -191,31 +228,31 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 		case 0x02: // x = x + b
 			printf("2");
 		    for (j = 1; j < imgW*4+1; j++){
-			    imageArray[(j-1) + (i*imgW*4)] = mod256(imageArray[j + (i*imgW*4)]+imageArray[(j-1) + ((i-1)*imgW*4)]);
+			    concat_idat[(j-1) + (i*imgW*4)] = mod256(concat_idat[j + (i*imgW*4)]+concat_idat[(j-1) + ((i-1)*imgW*4)]);
 		    }break;
 
 
 		case 0x03: // x = mod256(x + (a + b)/2)
 			printf("3");
 			for (j = 1; j < 5; j++){
-				imageArray[(j-1) + (i*imgW*4)] = mod256(avgFilter(0,imageArray[(j-1) + ((i-1)*imgW*4)]) + imageArray[(j) + (i*imgW*4)]);
+				concat_idat[(j-1) + (i*imgW*4)] = mod256(avgFilter(0,concat_idat[(j-1) + ((i-1)*imgW*4)]) + concat_idat[(j) + (i*imgW*4)]);
 			}
 			for (j = 5; j < imgW*4+1; j++){
-				imageArray[(j-1) + (i*imgW*4)] = mod256(avgFilter(imageArray[(j-5) + (i*imgW*4)],imageArray[(j-1) + ((i-1)*imgW*4)]) + imageArray[j + (i*imgW*4)]);
+				concat_idat[(j-1) + (i*imgW*4)] = mod256(avgFilter(concat_idat[(j-5) + (i*imgW*4)],concat_idat[(j-1) + ((i-1)*imgW*4)]) + concat_idat[j + (i*imgW*4)]);
 			}
 		    break;
 
 
-			case 0x04: // paeth algorithm
+		case 0x04: // paeth algorithm
 			printf("4");
 		    for (j = 0; j < imgW*4; j++){
-			imageArray[j + (i*imgW*4)] = imageArray[(j+1) + (i*imgW*4)];
+			concat_idat[j + (i*imgW*4)] = concat_idat[(j+1) + (i*imgW*4)];
 			if (j == 0){ //if its the first entry, a and c == 0
-			imageArray[j + (i*imgW*4)] = mod256(paethPredictor(0, imageArray[j + ((i-1)*imgW*4)], 0) + imageArray[j + (i*imgW*4)]);
+			concat_idat[j + (i*imgW*4)] = mod256(paethPredictor(0, concat_idat[j + ((i-1)*imgW*4)], 0) + concat_idat[j + (i*imgW*4)]);
 			} else if (j != 0 && j < 4){ //if its one of the first 4 bytes, a and c == 0;
-			imageArray[j + (i*imgW*4)] = mod256(paethPredictor(0, imageArray[j + ((i-1)*imgW*4)], 0) + imageArray[j + (i*imgW*4)]);
+			concat_idat[j + (i*imgW*4)] = mod256(paethPredictor(0, concat_idat[j + ((i-1)*imgW*4)], 0) + concat_idat[j + (i*imgW*4)]);
 			} else { //else, normal paeth decoding
-			imageArray[j + (i*imgW*4)] = mod256(paethPredictor(imageArray[(j-4) + (i*imgW*4)], imageArray[j + ((i-1)*imgW*4)], imageArray[(j-4) + ((i-1)*imgW*4)]) + imageArray[j + (i*imgW*4)]);
+			concat_idat[j + (i*imgW*4)] = mod256(paethPredictor(concat_idat[(j-4) + (i*imgW*4)], concat_idat[j + ((i-1)*imgW*4)], concat_idat[(j-4) + ((i-1)*imgW*4)]) + concat_idat[j + (i*imgW*4)]);
 			}
                     } break;
 		default:
@@ -233,8 +270,8 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 
 	for (i = 0; i < imgH; i++){		//turning the pixel data into a single string
 	    for (j = 0; j < (imgW*4)-1; j++){	//bc i dont understand how to do it otherwise
-		new_buffer[k] = imageArray[j + (i*imgW*4)];
-		//printf("%3d ",imageArray[j + (i*imgW*4)]);
+		new_buffer[k] = concat_idat[j + (i*imgW*4)];
+		//printf("%3d ",concat_idat[j + (i*imgW*4)]);
 		k++;
 	    }
 	    //printf("\n");
@@ -247,7 +284,7 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 	    for (j = 0; j < imgW*4; j++){
 		if (j % 4 == 0){
 		    printf(" #");}
-		    printf("%.2X", imageArray[j + (i*imgW*4)]);
+		    printf("%.2X", concat_idat[j + (i*imgW*4)]);
 	    }
 	    printf("\n");
 	}
@@ -258,13 +295,13 @@ unsigned char *processPNG(char *fileLoc) //this is maybe the stupidest shit i wi
 	    for (j = 0; j < imgW*4; j++){
 		if (j % 4 == 0){
 		    printf(" #");}
-		    printf("%.2X", imageArray[j + (i*imgW*4)]);
+		    printf("%.2X", concat_idat[j + (i*imgW*4)]);
 	    }
 	    printf("\n");
 	}
 
 	unsigned char *image_data = new_buffer;
 
-	fclose(image);
+	fclose(fptr);
 	return image_data;
 }
